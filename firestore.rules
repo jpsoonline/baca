@@ -1,0 +1,32 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // GANTI dengan email Google admin (pemilik aplikasi), huruf kecil.
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email.lower() in ['ADMIN_EMAIL_DISINI@gmail.com'];
+    }
+    function myEmail() { return request.auth.token.email.lower(); }
+    function licensed() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && exists(/databases/$(database)/documents/licenses/$(myEmail()))
+        && get(/databases/$(database)/documents/licenses/$(myEmail())).data.status == 'active';
+    }
+
+    // Lisensi: id dokumen = email pengguna (huruf kecil). Hanya admin yang boleh menulis.
+    match /licenses/{email} {
+      allow read: if request.auth != null && (isAdmin() || myEmail() == email);
+      allow write: if isAdmin();
+    }
+
+    // Pengaturan per pengguna: hanya pemiliknya, dan hanya jika lisensinya aktif.
+    match /users/{uid}/settings/{doc} {
+      allow read, write: if request.auth != null && request.auth.uid == uid && licensed();
+    }
+
+    match /{document=**} { allow read, write: if false; }
+  }
+}

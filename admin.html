@@ -1,0 +1,38 @@
+<!DOCTYPE html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Admin Lisensi - Rekap OS</title>
+<style>:root{--bg:#f5f6f8;--card:#fff;--tx:#1d2330;--mut:#667085;--ac:#1f6feb;--bd:#d9dee7}@media(prefers-color-scheme:dark){:root{--bg:#14171c;--card:#1d222b;--tx:#e7eaf0;--mut:#9aa4b2;--bd:#323946}}
+body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.45 system-ui,Arial,sans-serif}main{max-width:860px;margin:0 auto;padding:20px 16px}.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:14px;margin-top:12px}
+.mut{color:var(--mut)}input,select,button{font:inherit;padding:7px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--card);color:var(--tx)}button{cursor:pointer}button.p{background:var(--ac);color:#fff;border-color:var(--ac)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:end}table{width:100%;border-collapse:collapse}td,th{padding:6px 8px;border-bottom:1px solid var(--bd);text-align:left}</style></head>
+<body><main><h1 style="font-size:20px;margin:0">Admin Lisensi Rekap OS</h1><div class="mut">Hanya untuk admin yang emailnya tercantum di firestore.rules.</div>
+<div class="card" id="lg"><button class="p" id="in">Masuk dengan Google</button> <span id="who" class="mut"></span> <button id="out" hidden>Keluar</button><div id="m" class="mut" style="margin-top:8px"></div></div>
+<div class="card" id="ad" hidden><div class="row"><label>Email pengguna<br><input id="em" style="width:260px" placeholder="nama@gmail.com"></label><label>Status<br><select id="st"><option value="active">active (aktif)</option><option value="revoked">revoked (dicabut)</option></select></label>
+<label>Berlaku s/d<br><input id="ex" type="date"></label><label>Catatan<br><input id="nt" style="width:200px"></label><button class="p" id="sv">Simpan</button></div>
+<div class="mut" style="margin-top:6px">Kosongkan tanggal = tanpa batas waktu. Menyimpan email yang sudah ada = memperbarui.</div></div>
+<div class="card" id="tb" hidden><table><thead><tr><th>Email</th><th>Status</th><th>Berlaku s/d</th><th>Catatan</th><th></th></tr></thead><tbody id="rows"></tbody></table></div></main>
+<script src="firebase-config.js"></script>
+<script>
+const $=id=>document.getElementById(id),SDK='https://www.gstatic.com/firebasejs/10.12.2/',msg=(t,b)=>{$('m').textContent=t;$('m').style.color=b?'#c0392b':''};
+const ld=s=>new Promise((o,n)=>{const e=document.createElement('script');e.src=s;e.onload=o;e.onerror=()=>n(new Error('Gagal memuat '+s));document.head.appendChild(e)});
+let auth,db;
+async function list(){const q=await db.collection('licenses').get(),b=$('rows');b.innerHTML='';
+ q.docs.sort((a,c)=>a.id<c.id?-1:1).forEach(d=>{const x=d.data(),tr=document.createElement('tr');
+  [d.id,x.status||'',x.expires||'tanpa batas',x.note||''].forEach(v=>{const td=document.createElement('td');td.textContent=v;tr.appendChild(td)});
+  const td=document.createElement('td');
+  const mkb=(t,f)=>{const b=document.createElement('button');b.textContent=t;b.style.marginRight='4px';b.onclick=f;td.appendChild(b)};
+  mkb('Edit',()=>{$('em').value=d.id;$('st').value=x.status||'active';$('ex').value=x.expires||'';$('nt').value=x.note||''});
+  mkb(x.status==='active'?'Cabut':'Aktifkan',async()=>{await db.collection('licenses').doc(d.id).set({status:x.status==='active'?'revoked':'active',updatedAt:Date.now()},{merge:true});list()});
+  mkb('Hapus',async()=>{if(confirm('Hapus lisensi '+d.id+'?')){await db.collection('licenses').doc(d.id).delete();list()}});
+  tr.appendChild(td);b.appendChild(tr)});
+ $('tb').hidden=false;msg('Admin: '+q.size+' lisensi.')}
+(async()=>{
+ const C=window.REKAPOS_FB;if(!C||!C.apiKey||/ISI_/.test(C.apiKey)){msg('firebase-config.js belum diisi.',1);$('in').disabled=true;return}
+ try{await ld(SDK+'firebase-app-compat.js');await Promise.all([ld(SDK+'firebase-auth-compat.js'),ld(SDK+'firebase-firestore-compat.js')])}catch(e){msg(e.message,1);return}
+ firebase.initializeApp(C);auth=firebase.auth();db=firebase.firestore();
+ $('in').onclick=()=>auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e=>msg('Gagal masuk: '+(e.code||e.message),1));
+ $('out').onclick=()=>auth.signOut();
+ $('sv').onclick=async()=>{const em=$('em').value.trim().toLowerCase();if(!/^\S+@\S+\.\S+$/.test(em)){msg('Email tidak valid.',1);return}
+  try{await db.collection('licenses').doc(em).set({status:$('st').value,expires:$('ex').value||'',note:$('nt').value.trim(),updatedAt:Date.now()});$('em').value=$('nt').value='';$('ex').value='';await list()}catch(e){msg('Gagal menyimpan: '+(e.code||e.message),1)}};
+ auth.onAuthStateChanged(async u=>{$('in').hidden=!!u;$('out').hidden=!u;$('who').textContent=u?u.email:'';$('ad').hidden=$('tb').hidden=true;if(!u)return;
+  try{await list();$('ad').hidden=false}catch(e){msg(e.code==='permission-denied'?'Akun ini bukan admin (periksa isAdmin() di firestore.rules).':'Gagal: '+(e.code||e.message),1)}})
+})();
+</script></body></html>
