@@ -3,10 +3,10 @@
 // Nilai ini memang publik; keamanan data dijaga oleh Security Rules (firestore.rules) dan login.
 // Biarkan "ISI_..." jika belum diisi: aplikasi tetap jalan lokal tanpa cloud.
 window.REKAPOS_FB = {
-  apiKey: "ISI_API_KEY",
-  authDomain: "ISI_PROJECT_ID.firebaseapp.com",
-  projectId: "ISI_PROJECT_ID",
-  storageBucket: "ISI_PROJECT_ID.appspot.com",
-  messagingSenderId: "ISI_SENDER_ID",
-  appId: "ISI_APP_ID"
+  apiKey: "AIzaSyADhJRxEHeGOBlzXjDAt30Z1IV1OUYnhdQ",
+  authDomain: "jpso-c224b.firebaseapp.com",
+  projectId: "jpso-c224b",
+  storageBucket: "jpso-c224b.firebasestorage.app",
+  messagingSenderId: "121452081025",
+  appId: "1:121452081025:web:bcf732b0b02881d6680280"
 };
